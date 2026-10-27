@@ -9,4 +9,6 @@ RUN useradd --no-create-home appuser
 USER appuser
 
 EXPOSE 8000
-CMD ["gunicorn", "-b", "0.0.0.0:8000", "app.main:app"]
+# gthread: several workers and threads, so one idle connection (e.g. a load balancer
+# health probe) cannot block /health. The default "sync" worker handles one at a time.
+CMD ["gunicorn", "--worker-class", "gthread", "--workers", "2", "--threads", "4", "--timeout", "30", "-b", "0.0.0.0:8000", "app.main:app"]
