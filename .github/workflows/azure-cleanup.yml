@@ -1,0 +1,39 @@
+name: azure-cleanup
+
+# Safety net against forgotten cloud resources.
+# Every hour it checks the resource group. If the group has expired
+# (its `delete-after` tag is in the past, or the tag is missing), it deletes it.
+# When you are finished with Azure for good: Actions tab > azure-cleanup > "..." > Disable workflow.
+on:
+  schedule:
+    - cron: "15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Delete expired resource group
+        run: |
+          RG="${{ secrets.AZURE_RESOURCE_GROUP }}"
+          if [ "$(az group exists --name "$RG")" != "true" ]; then
+            echo "Resource group $RG does not exist. Nothing to clean."
+            exit 0
+          fi
+          EXPIRY=$(az group show --name "$RG" --query 'tags."delete-after"' -o tsv)
+          NOW=$(date +%s)
+          if [ -z "$EXPIRY" ] || [ "$EXPIRY" = "None" ]; then
+            echo "No delete-after tag on $RG. Deleting it (fail safe)."
+          elif [ "$NOW" -lt "$EXPIRY" ]; then
+            echo "$RG expires in $(( (EXPIRY - NOW) / 60 )) minutes. Keeping it."
+            exit 0
+          else
+            echo "$RG has expired. Deleting it."
+          fi
+          az group delete --name "$RG" --yes --no-wait
+          echo "Delete requested for $RG."

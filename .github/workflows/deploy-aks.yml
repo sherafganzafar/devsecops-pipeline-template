@@ -18,11 +18,12 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Build and push image to ACR
+      - name: Build image on the runner and push to ACR
         run: |
-          az acr build \
-            --registry ${{ secrets.ACR_NAME }} \
-            --image ${{ env.IMAGE_NAME }}:${{ github.sha }} .
+          IMAGE=${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          az acr login --name ${{ secrets.ACR_NAME }}
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
 
       - name: Set AKS context
         uses: azure/aks-set-context@v4
