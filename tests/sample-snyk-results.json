@@ -1,0 +1,4 @@
+{"ok": false, "vulnerabilities": [
+ {"severity": "high", "packageName": "example-lib", "version": "1.0.0", "title": "Sample finding", "fixedIn": ["1.0.1"]},
+ {"severity": "low", "packageName": "other-lib", "version": "2.3.0", "title": "Minor issue", "fixedIn": []}
+]}
