@@ -42,10 +42,29 @@ jobs:
           name: snyk-results
           path: snyk-results.json
 
-  build:
+  build-and-test:
     needs: scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Build image
-        run: docker build -t devsecops-demo:${{ github.sha }} .
+        run: docker build -t devsecops-demo:ci .
+
+      - name: Create a throwaway Kubernetes cluster (kind)
+        uses: helm/kind-action@v1
+
+      - name: Load image into the cluster
+        run: kind load docker-image devsecops-demo:ci --name chart-testing
+
+      - name: Deploy manifests
+        run: |
+          sed -i 's|devsecops-demo:latest|devsecops-demo:ci|' k8s/deployment.yaml
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/devsecops-demo --timeout=120s
+
+      - name: Smoke test /health
+        run: |
+          kubectl port-forward svc/devsecops-demo 8080:80 &
+          sleep 5
+          curl --fail --silent http://localhost:8080/health

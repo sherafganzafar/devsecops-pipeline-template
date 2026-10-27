@@ -12,6 +12,8 @@ then builds the Docker image.
 | `app/main.py` | Tiny Flask service with a `/health` endpoint |
 | `Dockerfile`, `docker-compose.yml` | Container build, runs as a non-root user |
 | `.github/workflows/security.yml` | Scan, gate, then build. Runs on push, PRs and weekly |
+| `k8s/` | Deployment and Service manifests |
+| `.github/workflows/deploy-aks.yml` | Manual deploy to Azure Kubernetes Service (see `docs/AKS-SETUP.md`) |
 | `scripts/summarize_snyk.py` | Reads Snyk JSON, prints a severity table, fails above a threshold |
 
 ## Pipeline flow
@@ -19,7 +21,10 @@ then builds the Docker image.
 ```
 push / PR / weekly
       |
-  Snyk scan --> summary in run page --> gate (fail on high+) --> docker build
+  Snyk scan --> summary in run page --> gate (fail on high+)
+        --> docker build --> deploy to a temporary kind cluster --> /health smoke test
+
+  manual: deploy-aks workflow --> ACR build --> AKS deploy
 ```
 
 ## Setup
